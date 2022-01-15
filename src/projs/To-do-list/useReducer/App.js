@@ -34,11 +34,11 @@ const reducer = (state, action) => {
         }
         return item
       })
+      delete state.idEdit
       return {
         ...state,
         list: editedList,
         isEflagOpen: false,
-        idEdit: '',
       }
     default:
       throw new Error(`action.type ${action.type} does not exist`)
