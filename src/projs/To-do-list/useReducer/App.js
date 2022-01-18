@@ -1,12 +1,31 @@
 import React, { useCallback, useEffect, useReducer, useState } from 'react'
+
+import Swal from 'sweetalert2'
+
 const defaultState = {
   list: [],
   isEflagOpen: false,
 }
+
+const getList = () => {
+  return localStorage.getItem('D_STATE')
+    ? JSON.parse(localStorage.getItem('D_STATE'))
+    : defaultState
+}
+
 const reducer = (state, action) => {
-  switch (action.type) {
-    case 'ADD_ITEM':
-      return {
+  try {
+    const ACT = (type) => {
+      return action.type === type
+    }
+
+    let concludeState
+
+    if (ACT('SET_STATE')) {
+      concludeState = action.payload
+    }
+    if (ACT('ADD_ITEM')) {
+      concludeState = {
         ...state,
         list: [
           ...state.list,
@@ -14,20 +33,23 @@ const reducer = (state, action) => {
         ],
         isEflagOpen: false,
       }
-    case 'REMOVE_ITEM':
+    }
+    if (ACT('REMOVE_ITEM')) {
       var newList = state.list.filter((item) => item.id !== action.payload)
-      return {
+      concludeState = {
         ...state,
         list: newList,
         isEflagOpen: false,
       }
-    case 'EDITING_ITEM':
-      return {
+    }
+    if (ACT('EDITING_ITEM')) {
+      concludeState = {
         ...state,
         isEflagOpen: true,
         idEdit: action.payload,
       }
-    case 'EDIT_ITEM':
+    }
+    if (ACT('EDIT_ITEM')) {
       var editedList = state.list.filter((item) => {
         if (item.id === state.idEdit) {
           item.name = action.payload
@@ -35,18 +57,38 @@ const reducer = (state, action) => {
         return item
       })
       delete state.idEdit
-      return {
+      concludeState = {
         ...state,
         list: editedList,
         isEflagOpen: false,
       }
-    default:
-      throw new Error(`action.type ${action.type} does not exist`)
+    }
+
+    localStorage.setItem('D_STATE', JSON.stringify(concludeState))
+    return concludeState
+  } catch (error) {
+    throw new Error(`action.type ${action.type} does not exist`)
   }
 }
+
 const App = () => {
   const [state, dispatch] = useReducer(reducer, defaultState)
   const [name, setName] = useState('')
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    const D_STATE = getList()
+    dispatch({ type: 'SET_STATE', payload: D_STATE })
+  }, [])
+
+  useEffect(() => {
+    const timeOutError = setTimeout(() => {
+      setError(false)
+    }, 1000)
+    return () => {
+      clearTimeout(timeOutError)
+    }
+  }, [error])
 
   const submitHandler = useCallback(
     (e) => {
@@ -58,11 +100,16 @@ const App = () => {
       }
       if (name && state.isEflagOpen) {
         dispatch({ type: 'EDIT_ITEM', payload: name })
-
         setName('')
         return
       }
-      alert('Please add a value')
+      setError(true)
+      Swal.fire({
+        title: 'Error!',
+        text: 'Please add a value to the input ',
+        icon: 'error',
+        confirmButtonText: 'sure thing!',
+      })
     },
     [name]
   )
@@ -81,6 +128,7 @@ const App = () => {
     },
     [state]
   )
+
   return (
     <div className='container'>
       <form className='form' onSubmit={submitHandler}>
@@ -88,14 +136,19 @@ const App = () => {
           type='text'
           onChange={(e) => setName(e.target.value)}
           placeholder='Name'
+          style={error ? { outlineColor: 'red' } : null}
           value={name}
         />
-        <button className='btn' type='submit'>
+        <button
+          className='btn'
+          type='submit'
+          style={error ? { backgroundColor: 'red' } : null}
+        >
           {state.isEflagOpen ? 'Edit Item' : 'Add Item'}
         </button>
       </form>
       <section className='section'>
-        {state.list.map(({ name, id }) => {
+        {state.list.map(({ name, id }, index) => {
           const selected = state.idEdit === id
           return (
             <article className='product' key={id}>
