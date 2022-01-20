@@ -75,6 +75,7 @@ const App = () => {
   const [state, dispatch] = useReducer(reducer, defaultState)
   const [name, setName] = useState('')
   const [error, setError] = useState(false)
+  const refInputText = React.useRef(null)
 
   useEffect(() => {
     const D_STATE = getList()
@@ -123,6 +124,7 @@ const App = () => {
 
   const editItem = useCallback(
     (id) => {
+      refInputText.current.focus()
       dispatch({ type: 'EDITING_ITEM', payload: id })
       setName('')
     },
@@ -135,6 +137,7 @@ const App = () => {
         <input
           type='text'
           onChange={(e) => setName(e.target.value)}
+          ref={refInputText}
           placeholder='Name'
           style={error ? { outlineColor: 'red' } : null}
           value={name}
